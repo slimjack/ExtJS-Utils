@@ -38,22 +38,7 @@
         }
     },
 
-    relayComponentsEvents: function () {
-        var me = this;
-        me.each(function(component) {
-            me.relayEvents(component, me._events);
-        });
-    },
-
-    createProxyMethod: function (methods) {
-        var me = this;
-        Ext.Array.forEach(methods, function (method) {
-            if (!me[method]) {
-                me[method] = Ext.bind(me.invoke, me, [method], 0);
-            }
-        });
-    },
-
+    //region Public methods
     each: function (fn) {
         var me = this;
         Ext.Array.forEach(me.select(), fn);
@@ -77,6 +62,24 @@
             result = component[method].apply(component, args);
         });
         return result;
+    },
+    //endregion
+
+    //region Private methods
+    relayComponentsEvents: function () {
+        var me = this;
+        me.each(function(component) {
+            me.relayEvents(component, me._events);
+        });
+    },
+
+    createProxyMethod: function (methods) {
+        var me = this;
+        Ext.Array.forEach(methods, function (method) {
+            if (!me[method]) {
+                me[method] = Ext.bind(me.invoke, me, [method], 0);
+            }
+        });
     },
 
     select: function () {
@@ -114,4 +117,5 @@
             me.fireEvent('queryremove', removedComponents);
         }
     }
+    //endregion
 });
