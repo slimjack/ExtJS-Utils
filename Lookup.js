@@ -1,4 +1,6 @@
-﻿Ext.define('Ext.ux.util.Lookup', {
+﻿//https://github.com/slimjack/ExtJs-Utils
+
+Ext.define('Ext.ux.util.Lookup', {
     statics: {
         fromArray: function(array, keySelector, valueSelector) {
             var lookup = new Ext.ux.util.Lookup();

@@ -1,6 +1,8 @@
-﻿Ext.define('Ext.ux.util.ComponentQuery', {
-    alternateClassName: 'ComponentQuery',
-    _defaultMethods: ['disable', 'enable', 'setReadOnly'],
+﻿//https://github.com/slimjack/ExtJs-Utils
+
+Ext.define('Ext.ux.util.DynamicComponentQuery', {
+    alternateClassName: 'DynamicComponentQuery',
+    _defaultMethods: ['disable', 'enable', 'setReadOnly', 'setDisabled'],
     _defaultEvents: [],
     mixins: ['Ext.util.Observable'],
     constructor: function (config, query, excludeQuery) {
