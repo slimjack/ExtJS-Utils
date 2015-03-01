@@ -32,7 +32,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
 
         var methods = Ext.Array.union(me._defaultMethods, Ext.Array.from(me.methods));
         delete me.methods;
-        me.createProxyMethod(methods);
+        me.createProxyMethods(methods);
 
         if (me.view instanceof Ext.container.Container) {
             me.view.on('add', me.onAddComponent, me);
@@ -75,7 +75,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         });
     },
 
-    createProxyMethod: function (methods) {
+    createProxyMethods: function (methods) {
         var me = this;
         Ext.Array.forEach(methods, function (method) {
             if (!me[method]) {
