@@ -31,9 +31,21 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         return result;
     },
 
+    //region Protected
     onBeforeInit: Ext.emptyFn,
     onAfterInit: Ext.emptyFn,
+    onBeforeApplyLayout: Ext.emptyFn,
+    onAfterApplyLayout: function () {
+        var me = this;
+        me.updateViewState();
+    },
+    updateViewState: function () {
+        var me = this;
+        me.allFields.setReadOnly(me.isReadOnly);
+    },
+    //endregion
 
+    //region Private
     applyLayout: function (layout) {
         var me = this;
         if (layout) {
@@ -47,19 +59,6 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         }
     },
 
-    onUpdateViewState: Ext.emptyFn,
-    onBeforeApplyLayout: Ext.emptyFn,
-    onAfterApplyLayout: function () {
-        var me = this;
-        me.updateViewState();
-    },
-
-    updateViewState: function () {
-        var me = this;
-        me.allFields.setReadOnly(me.isReadOnly);
-        me.onUpdateViewState();
-    },
-
     setReadOnly: function (isReadOnly) {
         var me = this;
         if (me.isReadOnly !== isReadOnly) {
@@ -68,7 +67,6 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         }
     },
 
-    //region Helpers
     applyDynamicControl: function () {
         var me = this;
         Ext.Object.each(me.dynamicControl, function (configName, config) {
