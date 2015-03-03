@@ -43,9 +43,12 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         var me = this;
         me.allFields.setReadOnly(me.isReadOnly);
     },
-    //endregion
+    
+    finalizeEditing: function () {
+        var me = this;
+        me.getView().getEl().focus();
+    },
 
-    //region Private
     applyLayout: function (layout) {
         var me = this;
         if (layout) {
@@ -66,7 +69,9 @@ Ext.define('Ext.ux.util.DynamicViewController', {
             me.updateViewState();
         }
     },
+    //endregion
 
+    //region Private
     applyDynamicControl: function () {
         var me = this;
         Ext.Object.each(me.dynamicControl, function (configName, config) {
