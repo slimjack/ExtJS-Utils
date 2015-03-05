@@ -105,7 +105,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
             Ext.Array.each(addedComponents, function (component) {
                 me.relayEvents(component, me._events);
             });
-            me.fireEvent('queryadd', addedComponents);
+            me.fireEvent('componentsadd', addedComponents);
         }
     },
 
@@ -116,7 +116,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         var newComponents = me.select();
         var removedComponents = Ext.Array.difference(oldComponents, newComponents);
         if (removedComponents.length) {
-            me.fireEvent('queryremove', removedComponents);
+            me.fireEvent('componentsmove', removedComponents);
         }
     }
     //endregion
