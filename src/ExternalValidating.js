@@ -15,10 +15,8 @@ Ext.define('Ext.ux.plugin.ExternalValidating', {
             getErrors: function() {
                 var errors = this.callParent(arguments);
                 if (!ignoreExternal) {
-                    Ext.Object.each(externalErrors, function(sourceName, errorMessage) {
-                        if (errorMessage) {
-                            Ext.Array.include(errors, errorMessage);
-                        }
+                    Ext.Object.each(externalErrors, function(sourceName, errorMessages) {
+                        errors = errors.concat(errorMessages);
                     });
                 }
                 return errors;
@@ -31,13 +29,8 @@ Ext.define('Ext.ux.plugin.ExternalValidating', {
                 return result;
             },
 
-            setExternalError: function (sourceName, errorMessage) {
-                externalErrors[sourceName] = errorMessage;
-                formField.validate();
-            },
-
-            setExternalErrors: function (errors) {
-                Ext.apply(externalErrors, errors);
+            setExternalErrors: function (sourceName, errorMessages) {
+                externalErrors[sourceName] = errorMessages || [];
                 formField.validate();
             }
         });

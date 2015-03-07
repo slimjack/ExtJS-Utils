@@ -282,9 +282,12 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         var me = this;
         me.allFields.setReadOnly(me.isReadOnly);
     },
-    //endregion
+    
+    finalizeEditing: function () {
+        var me = this;
+        me.getView().getEl().focus();
+    },
 
-    //region Private
     applyLayout: function (layout) {
         var me = this;
         if (layout) {
@@ -305,7 +308,9 @@ Ext.define('Ext.ux.util.DynamicViewController', {
             me.updateViewState();
         }
     },
+    //endregion
 
+    //region Private
     applyDynamicControl: function () {
         var me = this;
         Ext.Object.each(me.dynamicControl, function (configName, config) {
@@ -374,6 +379,7 @@ function () {
         Controller.initDynamicControlSection(data, cls, proto);
     });
 });
+
 ///#source 1 1 /src/ExternalValidating.js
 //https://github.com/slimjack/ExtJs-Utils
 
@@ -392,10 +398,8 @@ Ext.define('Ext.ux.plugin.ExternalValidating', {
             getErrors: function() {
                 var errors = this.callParent(arguments);
                 if (!ignoreExternal) {
-                    Ext.Object.each(externalErrors, function(sourceName, errorMessage) {
-                        if (errorMessage) {
-                            Ext.Array.include(errors, errorMessage);
-                        }
+                    Ext.Object.each(externalErrors, function(sourceName, errorMessages) {
+                        errors = errors.concat(errorMessages);
                     });
                 }
                 return errors;
@@ -408,13 +412,8 @@ Ext.define('Ext.ux.plugin.ExternalValidating', {
                 return result;
             },
 
-            setExternalError: function (sourceName, errorMessage) {
-                externalErrors[sourceName] = errorMessage;
-                formField.validate();
-            },
-
-            setExternalErrors: function (errors) {
-                Ext.apply(externalErrors, errors);
+            setExternalErrors: function (sourceName, errorMessages) {
+                externalErrors[sourceName] = errorMessages || [];
                 formField.validate();
             }
         });
