@@ -140,8 +140,8 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
             Ext.Error.raise('"view" is not an instance of Ext.AbstractComponent');
         }
 
-        me._doForAllDelegates = [];
-        me._doOnRemoveDelegates = [];
+        me._everyDelegates = [];
+        me._everyRemovedDelegates = [];
         me._eventRelayers = {};
         me._events = Ext.Array.union(me._defaultEvents, Ext.Array.from(me.events));
         delete me.events;
@@ -183,23 +183,27 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         return result;
     },
 
-    doForAll: function (delegate) {
+    every: function (delegate) {
         var me = this;
-        me._doForAllDelegates.push(delegate);
+        Ext.Array.include(me._everyDelegates, delegate);
         me.each(delegate);
     },
 
-    doOnRemove: function (delegate) {
+    everyRemoved: function (delegate) {
         var me = this;
-        me._doOnRemoveDelegates.push(delegate);
+        Ext.Array.include(me._everyRemovedDelegates, delegate);
     },
     //endregion
 
     //region Private methods
     relayComponentsEvents: function () {
         var me = this;
-        me.each(function(component) {
+        me.every(function (component) {
             me._eventRelayers[component.id] = me.relayEvents(component, me._events);
+        });
+        me.everyRemoved(function (component) {
+            Ext.destroy(me._eventRelayers[component.id]);
+            delete me._eventRelayers[component.id];
         });
     },
 
@@ -230,10 +234,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         var newComponents = me.select();
         var addedComponents = Ext.Array.difference(newComponents, oldComponents);
         if (addedComponents.length) {
-            Ext.Array.each(addedComponents, function (component) {
-                me._eventRelayers[component.id] = me.relayEvents(component, me._events);
-            });
-            me.applyDoForAll(addedComponents);
+            me.applyEvery(addedComponents);
             me.fireEvent('componentsadd', addedComponents);
         }
     },
@@ -245,23 +246,19 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         var newComponents = me.select();
         var removedComponents = Ext.Array.difference(oldComponents, newComponents);
         if (removedComponents.length) {
-            Ext.Array.each(removedComponents, function (component) {
-                Ext.destroy(me._eventRelayers[component.id]);
-                delete me._eventRelayers[component.id];
-            });
-            me.applyDoOnRemove(removedComponents);
+            me.applyEveryRemoved(removedComponents);
             me.fireEvent('componentsremove', removedComponents);
         }
     },
 
-    applyDoForAll: function (components) {
-        Ext.Array.forEach(me._doForAllDelegates, function (delegate) {
+    applyEvery: function (components) {
+        Ext.Array.forEach(me._everyDelegates, function (delegate) {
             Ext.Array.forEach(components, delegate);
         });
     },
 
-    applyDoOnRemove: function (components) {
-        Ext.Array.forEach(me._doOnRemoveDelegates, function (delegate) {
+    applyEveryRemoved: function (components) {
+        Ext.Array.forEach(me._everyRemovedDelegates, function (delegate) {
             Ext.Array.forEach(components, delegate);
         });
     }
