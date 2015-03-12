@@ -138,12 +138,14 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
     },
 
     applyEvery: function (components) {
+        var me = this;
         Ext.Array.forEach(me._everyDelegates, function (delegate) {
             Ext.Array.forEach(components, delegate);
         });
     },
 
     applyEveryRemoved: function (components) {
+        var me = this;
         Ext.Array.forEach(me._everyRemovedDelegates, function (delegate) {
             Ext.Array.forEach(components, delegate);
         });

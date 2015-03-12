@@ -252,12 +252,14 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
     },
 
     applyEvery: function (components) {
+        var me = this;
         Ext.Array.forEach(me._everyDelegates, function (delegate) {
             Ext.Array.forEach(components, delegate);
         });
     },
 
     applyEveryRemoved: function (components) {
+        var me = this;
         Ext.Array.forEach(me._everyRemovedDelegates, function (delegate) {
             Ext.Array.forEach(components, delegate);
         });
@@ -345,9 +347,9 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         Ext.Object.each(me.dynamicControl, function (configName, config) {
             if (!me[configName]) {
                 var events = null;
-                var listeners = me[configName].listeners;
+                var listeners = config.listeners;
                 if (listeners) {
-                    events = Ext.Object.getKeys(me[configName].listeners);
+                    events = Ext.Object.getKeys(listeners);
                 }
                 me[configName] = new DynamicComponentQuery({
                     view: me.getView(),
@@ -357,6 +359,7 @@ Ext.define('Ext.ux.util.DynamicViewController', {
                     events: events
                 });
                 if (listeners) {
+                    listeners.scope = listeners.scope || me;
                     me[configName].on(listeners);
                 }
             }
