@@ -283,41 +283,41 @@ Ext.define('Ext.ux.util.DynamicViewController', {
     isReadOnly: false,
     dynamicLayoutContainerSelector: '',
 
-    constructor: function () {
-        var me = this;
-        me.callParent(arguments);
-        me.onBeforeInit();
-    },
-
     init: function () {
         var me = this;
         var result = me.callParent();
+        me.onBeforeViewInit();
         me.applyDynamicControl();
-        if (Ext.isIE8) {
-            me.getView().once('show', me.onAfterInit, me);
-        } else {
-            me.onAfterInit();
-        }
         return result;
     },
 
+    afterRender: function () {
+        var me = this;
+        me.onViewInit();
+        me.onViewInitAsync(function () {
+            me.onAfterViewInitAsync();
+        });
+    },
+
     //region Protected
-    onBeforeInit: Ext.emptyFn,
-    onAfterInit: Ext.emptyFn,
-    onBeforeApplyLayout: Ext.emptyFn,
-    onAfterApplyLayout: function () {
+    onViewInit: function () {
+        var me = this;
+        me.onAfterViewInit();
+    },
+
+    onBeforeViewInit: Ext.emptyFn,
+
+    onAfterViewInit: function () {
         var me = this;
         me.updateViewState();
     },
-    updateViewState: function () {
+
+    onViewInitAsync: function (callback) {
         var me = this;
-        me.allFields.setReadOnly(me.isReadOnly);
+        callback();
     },
-    
-    finalizeEditing: function () {
-        var me = this;
-        me.getView().getEl().focus();
-    },
+
+    onAfterViewInitAsync: Ext.emptyFn,
 
     applyLayout: function (layout) {
         var me = this;
@@ -332,6 +332,23 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         }
     },
 
+    onBeforeApplyLayout: Ext.emptyFn,
+
+    onAfterApplyLayout: function () {
+        var me = this;
+        me.updateViewState();
+    },
+
+    updateViewState: function () {
+        var me = this;
+        me.allFields.setReadOnly(me.isReadOnly);
+    },
+
+    finalizeEditing: function () {
+        var me = this;
+        me.getView().getEl().focus();
+    },
+
     setReadOnly: function (isReadOnly) {
         var me = this;
         if (me.isReadOnly !== isReadOnly) {
@@ -342,12 +359,13 @@ Ext.define('Ext.ux.util.DynamicViewController', {
     //endregion
 
     //region Private
+
     applyDynamicControl: function () {
         var me = this;
         Ext.Object.each(me.dynamicControl, function (configName, config) {
             if (!me[configName]) {
                 var events = null;
-                var listeners = config.listeners;
+                var listeners = Ext.clone(config.listeners);
                 if (listeners) {
                     events = Ext.Object.getKeys(listeners);
                 }
