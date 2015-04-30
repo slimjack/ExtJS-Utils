@@ -6,7 +6,8 @@ Ext.define('Ext.ux.util.DynamicViewController', {
     dynamicControl: {
         allFields: {
             selector: '[isFormField]:not([excludeForm])',
-            excludeQuery: '[isFormField] [isFormField]'
+            excludeQuery: '[isFormField] [isFormField]',
+            methods: ['validate']
         }
     },
 
