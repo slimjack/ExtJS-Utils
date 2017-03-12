@@ -2,17 +2,17 @@
 
 Ext.define('Ext.ux.util.Lookup', {
     statics: {
-        fromArray: function(array, keySelector, valueSelector) {
+        fromArray: function (array, keySelector, valueSelector) {
             var lookup = new Ext.ux.util.Lookup();
-            valueSelector = valueSelector || function(item) { return item; };
-            Ext.Array.forEach(array, function(item) {
+            valueSelector = valueSelector || function (item) { return item; };
+            Ext.Array.forEach(array, function (item) {
                 lookup.add(keySelector(item), valueSelector(item));
             });
             return lookup;
         }
     },
 
-    constructor: function(lookup) {
+    constructor: function (lookup) {
         var me = this;
         me.map = {};
         if (lookup) {
@@ -22,7 +22,7 @@ Ext.define('Ext.ux.util.Lookup', {
         }
     },
 
-    add: function(key, value) {
+    add: function (key, value) {
         var me = this;
         if (!me.map[key]) {
             me.map[key] = [];
@@ -30,7 +30,7 @@ Ext.define('Ext.ux.util.Lookup', {
         me.map[key].push(value);
     },
 
-    remove: function(key, value) {
+    remove: function (key, value) {
         var me = this;
         if (me.map[key]) {
             if (Ext.isArray(value)) {
@@ -56,29 +56,29 @@ Ext.define('Ext.ux.util.Lookup', {
         }
     },
 
-    removeAll: function() {
+    removeAll: function () {
         var me = this;
         me.map = {};
     },
 
-    removeKey: function(key) {
+    removeKey: function (key) {
         var me = this;
         if (me.map[key]) {
             delete me.map[key];
         }
     },
 
-    get: function(key) {
+    get: function (key) {
         var me = this;
         return me.map[key];
     },
 
-    clear: function() {
+    clear: function () {
         var me = this;
         me.map = {};
     },
 
-    clone: function() {
+    clone: function () {
         var me = this;
         return new Ext.ux.util.Lookup(me);
     },

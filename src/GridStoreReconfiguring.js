@@ -17,11 +17,11 @@ Ext.define('Ext.ux.plugin.GridStoreReconfiguring', {
         var currentStore = grid.store;
         bindableControls.bindStore(currentStore);
         bindableControls.on('componentsadd', function (addedComponents) {
-            Ext.Array.each(addedComponents, function(component) {
+            Ext.Array.each(addedComponents, function (component) {
                 component.bindStore(currentStore);
             });
         });
-        grid.on('reconfigure', function(sender, store, columns, oldStore) {
+        grid.on('reconfigure', function (sender, store, columns, oldStore) {
             if (store !== oldStore) {
                 currentStore = store;
                 bindableControls.bindStore(store);

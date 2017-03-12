@@ -1,6 +1,7 @@
-﻿///#source 1 1 /src/ExtExtentions.js
-Ext.abstractFn = function(msgTpl) {
-    var fn = function() {
+//https://github.com/slimjack/ExtJs-Utils
+
+Ext.abstractFn = function (msgTpl) {
+    var fn = function () {
         var thisMethodName = fn.$name;
         var callerMethodName = fn.caller.$name;
         if ((thisMethodName !== callerMethodName) && (callerMethodName !== 'callParent')) {
@@ -13,22 +14,40 @@ Ext.abstractFn = function(msgTpl) {
     return fn;
 };
 
-///#source 1 1 /src/Lookup.js
+Ext.createIdleThrottled = function (fn, scope) {
+    var _isIdleThrottledCallScheduled = false;
+    var fnWrapper = function fnWrapper() {
+        _isIdleThrottledCallScheduled = false;
+        scope = scope || this;
+        if (!scope.isDestroyed) {
+            fn.apply(scope, arguments);
+        }
+    };
+    return function () {
+        if (!_isIdleThrottledCallScheduled) {
+            _isIdleThrottledCallScheduled = true;
+            fnWrapper.apply(this, arguments);
+            // TODO temporary solution, remove line above and uncomment below after fixing updating _selectedComponents field
+            //Ext.defer(fnWrapper, 1, this, arguments);
+        }
+    };
+};
+
 //https://github.com/slimjack/ExtJs-Utils
 
 Ext.define('Ext.ux.util.Lookup', {
     statics: {
-        fromArray: function(array, keySelector, valueSelector) {
+        fromArray: function (array, keySelector, valueSelector) {
             var lookup = new Ext.ux.util.Lookup();
-            valueSelector = valueSelector || function(item) { return item; };
-            Ext.Array.forEach(array, function(item) {
+            valueSelector = valueSelector || function (item) { return item; };
+            Ext.Array.forEach(array, function (item) {
                 lookup.add(keySelector(item), valueSelector(item));
             });
             return lookup;
         }
     },
 
-    constructor: function(lookup) {
+    constructor: function (lookup) {
         var me = this;
         me.map = {};
         if (lookup) {
@@ -38,7 +57,7 @@ Ext.define('Ext.ux.util.Lookup', {
         }
     },
 
-    add: function(key, value) {
+    add: function (key, value) {
         var me = this;
         if (!me.map[key]) {
             me.map[key] = [];
@@ -46,7 +65,7 @@ Ext.define('Ext.ux.util.Lookup', {
         me.map[key].push(value);
     },
 
-    remove: function(key, value) {
+    remove: function (key, value) {
         var me = this;
         if (me.map[key]) {
             if (Ext.isArray(value)) {
@@ -72,29 +91,29 @@ Ext.define('Ext.ux.util.Lookup', {
         }
     },
 
-    removeAll: function() {
+    removeAll: function () {
         var me = this;
         me.map = {};
     },
 
-    removeKey: function(key) {
+    removeKey: function (key) {
         var me = this;
         if (me.map[key]) {
             delete me.map[key];
         }
     },
 
-    get: function(key) {
+    get: function (key) {
         var me = this;
         return me.map[key];
     },
 
-    clear: function() {
+    clear: function () {
         var me = this;
         me.map = {};
     },
 
-    clone: function() {
+    clone: function () {
         var me = this;
         return new Ext.ux.util.Lookup(me);
     },
@@ -126,7 +145,6 @@ Ext.define('Ext.ux.util.Lookup', {
         });
     }
 });
-///#source 1 1 /src/DynamicComponentQuery.js
 //https://github.com/slimjack/ExtJs-Utils
 
 Ext.define('Ext.ux.util.DynamicComponentQuery', {
@@ -165,11 +183,26 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         var methods = Ext.Array.union(me._defaultMethods, Ext.Array.from(me.methods));
         delete me.methods;
         me.createProxyMethods(methods);
+        me.view.on('destroy', me.onViewDestroyed, me);
+        me.subscribeOnLayoutChange();
+    },
 
-        if (me.view instanceof Ext.container.Container) {
-            me.view.on('add', me.onAddComponent, me);
-            me.view.on('remove', me.onAddComponent, me);
-        }
+    onViewDestroyed: function () {
+        var me = this;
+        me.destroy();
+    },
+
+    destroy: function () {
+        var me = this;
+        me._isDestroyed = true;
+        me._everyDelegates = [];
+        me._everyRemovedDelegates = [];
+        Ext.Object.eachValue(me._eventRelayers, function (relayer) {
+            Ext.destroy(relayer);
+        });
+        me._eventRelayers = {};
+        me.clearListeners();
+        me.callParent(arguments);
     },
 
     //region Public methods
@@ -178,7 +211,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         Ext.Array.forEach(me.select(), fn);
     },
 
-    contains: function(item) {
+    contains: function (item) {
         var me = this;
         return Ext.Array.contains(me.select(), item);
     },
@@ -242,8 +275,27 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         return me._selectedComponents;
     },
 
+    subscribeOnLayoutChange: function () {
+        var me = this;
+        if (!me.onAddComponentIdleThrottled) {
+            me.onAddComponentIdleThrottled = Ext.createIdleThrottled(me.onAddComponent);
+        }
+        if (!me.onRemoveComponentIdleThrottled) {
+            me.onRemoveComponentIdleThrottled = Ext.createIdleThrottled(me.onRemoveComponent);
+        }
+        if (me.view.isContainer) {
+            var containers = me.view.query('[isContainer]');
+            containers.push(me.view);
+            Ext.Array.forEach(containers, function (container) {
+                container.on('add', me.onAddComponentIdleThrottled, me);
+                container.on('remove', me.onRemoveComponentIdleThrottled, me);
+            });
+        }
+    },
+
     onAddComponent: function () {
         var me = this;
+        me.subscribeOnLayoutChange();
         var oldComponents = me._selectedComponents;
         me._selectedComponents = null;
         var newComponents = me.select();
@@ -254,7 +306,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         }
     },
 
-    onRemoveComponent: function() {
+    onRemoveComponent: function () {
         var me = this;
         var oldComponents = me._selectedComponents;
         me._selectedComponents = null;
@@ -282,7 +334,6 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
     //endregion
 });
 
-///#source 1 1 /src/DynamicViewController.js
 //https://github.com/slimjack/ExtJs-Utils
 
 Ext.define('Ext.ux.util.DynamicViewController', {
@@ -291,60 +342,88 @@ Ext.define('Ext.ux.util.DynamicViewController', {
     dynamicControl: {
         allFields: {
             selector: '[isFormField]:not([excludeForm])',
-            excludeQuery: '[isFormField] [isFormField]',
+            excludeQuery: '[isFormField] [isFormField], [controller] [isFormField]',
             methods: ['validate']
         }
     },
 
-    isReadOnly: false,
+    control: {
+        '#': {
+            boxready: 'onViewBoxReady'
+        }
+    },
+
     dynamicLayoutContainerSelector: '',
+
+    config: {
+        readOnly: false
+    },
+
+    constructor: function () {
+        var me = this;
+        me.callParent(arguments);
+    },
 
     init: function () {
         var me = this;
         var result = me.callParent();
-        me.onBeforeViewInit();
+        me.onInit();
+        me.onInitAsync(function () {
+            me.onAfterInitAsync();
+        });
         me.applyDynamicControl();
         return result;
     },
 
-    afterRender: function () {
+    //region Protected
+    onViewBoxReady: function () {
         var me = this;
-        me.onViewInit();
-        me.onViewInitAsync(function () {
-            me.onAfterViewInitAsync();
+        me.isViewReady = true;
+        me.onViewReady();
+        me.onViewReadyAsync(function () {
+            me.onAfterViewReadyAsync();
         });
     },
 
-    //region Protected
-    onViewInit: function () {
-        var me = this;
-        me.onAfterViewInit();
-    },
+    onViewReady: Ext.emptyFn,
+    onAfterViewReadyAsync: Ext.emptyFn,
 
-    onBeforeViewInit: Ext.emptyFn,
-
-    onAfterViewInit: function () {
-        var me = this;
-        me.updateViewState();
-    },
-
-    onViewInitAsync: function (callback) {
+    onViewReadyAsync: function (callback) {
         var me = this;
         callback();
     },
 
-    onAfterViewInitAsync: Ext.emptyFn,
+    onInit: function () {
+        var me = this;
+        me.onAfterInit();
+    },
+
+    afterRender: function () {
+        var me = this;
+        me.rendered = true;
+        me.onUpdateViewState();
+    },
+
+    onAfterInit: Ext.emptyFn,
+
+    onInitAsync: function (callback) {
+        var me = this;
+        callback();
+    },
+
+    onAfterInitAsync: Ext.emptyFn,
 
     applyLayout: function (layout) {
         var me = this;
         if (layout) {
             var mainView = me.getView();
             var dynamicLayoutContainer = me.dynamicLayoutContainerSelector ? mainView.query(me.dynamicLayoutContainerSelector)[0] : mainView;
+            Ext.suspendLayouts();
             me.onBeforeApplyLayout();
             dynamicLayoutContainer.removeAll();
             dynamicLayoutContainer.add(layout);
-            dynamicLayoutContainer.doLayout();
             me.onAfterApplyLayout();
+            Ext.resumeLayouts(true);
         }
     },
 
@@ -352,24 +431,25 @@ Ext.define('Ext.ux.util.DynamicViewController', {
 
     onAfterApplyLayout: function () {
         var me = this;
-        me.updateViewState();
+        me.onUpdateViewState();
     },
 
-    updateViewState: function () {
+    onUpdateViewState: function () {
         var me = this;
-        me.allFields.setReadOnly(me.isReadOnly);
+        me.allFields.setReadOnly(me.getReadOnly());
     },
 
     finalizeEditing: function () {
         var me = this;
-        me.getView().getEl().focus();
+        if (me.getView().isVisible()) {
+            me.getView().getEl().focus();
+        }
     },
 
-    setReadOnly: function (isReadOnly) {
+    updateReadOnly: function (isReadOnly) {
         var me = this;
-        if (me.isReadOnly !== isReadOnly) {
-            me.isReadOnly = isReadOnly;
-            me.updateViewState();
+        if (me.isViewReady) {
+            me.onUpdateViewState();
         }
     },
     //endregion
@@ -402,22 +482,6 @@ Ext.define('Ext.ux.util.DynamicViewController', {
     //endregion
 
     statics: {
-        initControlSection: function (data, cls, proto) {
-            var control = {};
-            if (proto.control) {
-                var superControl = proto.control;
-                delete proto.control;
-                control = Ext.merge(control, superControl);
-            }
-
-            if (data.control) {
-                var controlDefs = data.control;
-                delete data.control;
-                control = Ext.merge(control, controlDefs);
-            }
-            cls.control = proto.control = control;
-        },
-
         initDynamicControlSection: function (data, cls, proto) {
             var dynamicControl = {};
             if (proto.dynamicControl) {
@@ -435,18 +499,16 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         }
     }
 },
-function () {
-    var Controller = this;
+    function () {
+        var Controller = this;
 
-    Controller.onExtended(function (cls, data) {
-        var proto = cls.prototype;
+        Controller.onExtended(function (cls, data) {
+            var proto = cls.prototype;
 
-        Controller.initControlSection(data, cls, proto);
-        Controller.initDynamicControlSection(data, cls, proto);
+            Controller.initDynamicControlSection(data, cls, proto);
+        });
     });
-});
 
-///#source 1 1 /src/ExternalValidating.js
 //https://github.com/slimjack/ExtJs-Utils
 
 Ext.define('Ext.ux.plugin.ExternalValidating', {
@@ -460,18 +522,35 @@ Ext.define('Ext.ux.plugin.ExternalValidating', {
         if (!formField.isFormField) {
             Ext.Error.raise('ExternalValidating plugin may be applied only to form fields');
         }
+
+        if (Ext.isString(formField.valuePublishEvent)) {
+            formField.un(formField.valuePublishEvent, formField.publishValue, formField);
+        } else {
+            for (var i = 0, len = formField.valuePublishEvent.length; i < len; ++i) {
+                formField.un(formField.valuePublishEvent[i], formField.publishValue, formField);
+            }
+        }
+
         Ext.override(formField, {
-            getErrors: function() {
+            publishValue: function () {
+                var me = this;
+
+                if (me.rendered && !me.getInternalErrors().length) {
+                    me.publishState('value', me.getValue());
+                }
+            },
+
+            getErrors: function () {
                 var errors = this.callParent(arguments);
                 if (!ignoreExternal) {
-                    Ext.Object.each(externalErrors, function(sourceName, errorMessages) {
+                    Ext.Object.each(externalErrors, function (sourceName, errorMessages) {
                         errors = errors.concat(errorMessages);
                     });
                 }
                 return errors;
             },
 
-            getInternalErrors: function() {
+            getInternalErrors: function () {
                 ignoreExternal = true;
                 var result = this.getErrors();
                 ignoreExternal = false;
@@ -483,9 +562,16 @@ Ext.define('Ext.ux.plugin.ExternalValidating', {
                 formField.validate();
             }
         });
+
+        if (Ext.isString(formField.valuePublishEvent)) {
+            formField.on(formField.valuePublishEvent, formField.publishValue, formField);
+        } else {
+            for (i = 0, len = formField.valuePublishEvent.length; i < len; ++i) {
+                formField.on(formField.valuePublishEvent[i], formField.publishValue, formField);
+            }
+        }
     }
 });
-///#source 1 1 /src/GridStoreReconfiguring.js
 //https://github.com/slimjack/ExtJs-Utils
 
 Ext.define('Ext.ux.plugin.GridStoreReconfiguring', {
@@ -505,11 +591,11 @@ Ext.define('Ext.ux.plugin.GridStoreReconfiguring', {
         var currentStore = grid.store;
         bindableControls.bindStore(currentStore);
         bindableControls.on('componentsadd', function (addedComponents) {
-            Ext.Array.each(addedComponents, function(component) {
+            Ext.Array.each(addedComponents, function (component) {
                 component.bindStore(currentStore);
             });
         });
-        grid.on('reconfigure', function(sender, store, columns, oldStore) {
+        grid.on('reconfigure', function (sender, store, columns, oldStore) {
             if (store !== oldStore) {
                 currentStore = store;
                 bindableControls.bindStore(store);
@@ -517,7 +603,6 @@ Ext.define('Ext.ux.plugin.GridStoreReconfiguring', {
         });
     }
 });
-///#source 1 1 /src/ReadOnlyLatching.js
 //https://github.com/slimjack/ExtJs-Utils
 
 Ext.define('Ext.ux.plugin.ReadOnlyLatching', {

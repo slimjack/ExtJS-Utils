@@ -36,11 +36,26 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         var methods = Ext.Array.union(me._defaultMethods, Ext.Array.from(me.methods));
         delete me.methods;
         me.createProxyMethods(methods);
+        me.view.on('destroy', me.onViewDestroyed, me);
+        me.subscribeOnLayoutChange();
+    },
 
-        if (me.view instanceof Ext.container.Container) {
-            me.view.on('add', me.onAddComponent, me);
-            me.view.on('remove', me.onAddComponent, me);
-        }
+    onViewDestroyed: function () {
+        var me = this;
+        me.destroy();
+    },
+
+    destroy: function () {
+        var me = this;
+        me._isDestroyed = true;
+        me._everyDelegates = [];
+        me._everyRemovedDelegates = [];
+        Ext.Object.eachValue(me._eventRelayers, function (relayer) {
+            Ext.destroy(relayer);
+        });
+        me._eventRelayers = {};
+        me.clearListeners();
+        me.callParent(arguments);
     },
 
     //region Public methods
@@ -49,7 +64,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         Ext.Array.forEach(me.select(), fn);
     },
 
-    contains: function(item) {
+    contains: function (item) {
         var me = this;
         return Ext.Array.contains(me.select(), item);
     },
@@ -113,8 +128,27 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         return me._selectedComponents;
     },
 
+    subscribeOnLayoutChange: function () {
+        var me = this;
+        if (!me.onAddComponentIdleThrottled) {
+            me.onAddComponentIdleThrottled = Ext.createIdleThrottled(me.onAddComponent);
+        }
+        if (!me.onRemoveComponentIdleThrottled) {
+            me.onRemoveComponentIdleThrottled = Ext.createIdleThrottled(me.onRemoveComponent);
+        }
+        if (me.view.isContainer) {
+            var containers = me.view.query('[isContainer]');
+            containers.push(me.view);
+            Ext.Array.forEach(containers, function (container) {
+                container.on('add', me.onAddComponentIdleThrottled, me);
+                container.on('remove', me.onRemoveComponentIdleThrottled, me);
+            });
+        }
+    },
+
     onAddComponent: function () {
         var me = this;
+        me.subscribeOnLayoutChange();
         var oldComponents = me._selectedComponents;
         me._selectedComponents = null;
         var newComponents = me.select();
@@ -125,7 +159,7 @@ Ext.define('Ext.ux.util.DynamicComponentQuery', {
         }
     },
 
-    onRemoveComponent: function() {
+    onRemoveComponent: function () {
         var me = this;
         var oldComponents = me._selectedComponents;
         me._selectedComponents = null;

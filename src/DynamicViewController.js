@@ -6,60 +6,88 @@ Ext.define('Ext.ux.util.DynamicViewController', {
     dynamicControl: {
         allFields: {
             selector: '[isFormField]:not([excludeForm])',
-            excludeQuery: '[isFormField] [isFormField]',
+            excludeQuery: '[isFormField] [isFormField], [controller] [isFormField]',
             methods: ['validate']
         }
     },
 
-    isReadOnly: false,
+    control: {
+        '#': {
+            boxready: 'onViewBoxReady'
+        }
+    },
+
     dynamicLayoutContainerSelector: '',
+
+    config: {
+        readOnly: false
+    },
+
+    constructor: function () {
+        var me = this;
+        me.callParent(arguments);
+    },
 
     init: function () {
         var me = this;
         var result = me.callParent();
-        me.onBeforeViewInit();
+        me.onInit();
+        me.onInitAsync(function () {
+            me.onAfterInitAsync();
+        });
         me.applyDynamicControl();
         return result;
     },
 
-    afterRender: function () {
+    //region Protected
+    onViewBoxReady: function () {
         var me = this;
-        me.onViewInit();
-        me.onViewInitAsync(function () {
-            me.onAfterViewInitAsync();
+        me.isViewReady = true;
+        me.onViewReady();
+        me.onViewReadyAsync(function () {
+            me.onAfterViewReadyAsync();
         });
     },
 
-    //region Protected
-    onViewInit: function () {
-        var me = this;
-        me.onAfterViewInit();
-    },
+    onViewReady: Ext.emptyFn,
+    onAfterViewReadyAsync: Ext.emptyFn,
 
-    onBeforeViewInit: Ext.emptyFn,
-
-    onAfterViewInit: function () {
-        var me = this;
-        me.updateViewState();
-    },
-
-    onViewInitAsync: function (callback) {
+    onViewReadyAsync: function (callback) {
         var me = this;
         callback();
     },
 
-    onAfterViewInitAsync: Ext.emptyFn,
+    onInit: function () {
+        var me = this;
+        me.onAfterInit();
+    },
+
+    afterRender: function () {
+        var me = this;
+        me.rendered = true;
+        me.onUpdateViewState();
+    },
+
+    onAfterInit: Ext.emptyFn,
+
+    onInitAsync: function (callback) {
+        var me = this;
+        callback();
+    },
+
+    onAfterInitAsync: Ext.emptyFn,
 
     applyLayout: function (layout) {
         var me = this;
         if (layout) {
             var mainView = me.getView();
             var dynamicLayoutContainer = me.dynamicLayoutContainerSelector ? mainView.query(me.dynamicLayoutContainerSelector)[0] : mainView;
+            Ext.suspendLayouts();
             me.onBeforeApplyLayout();
             dynamicLayoutContainer.removeAll();
             dynamicLayoutContainer.add(layout);
-            dynamicLayoutContainer.doLayout();
             me.onAfterApplyLayout();
+            Ext.resumeLayouts(true);
         }
     },
 
@@ -67,24 +95,25 @@ Ext.define('Ext.ux.util.DynamicViewController', {
 
     onAfterApplyLayout: function () {
         var me = this;
-        me.updateViewState();
+        me.onUpdateViewState();
     },
 
-    updateViewState: function () {
+    onUpdateViewState: function () {
         var me = this;
-        me.allFields.setReadOnly(me.isReadOnly);
+        me.allFields.setReadOnly(me.getReadOnly());
     },
 
     finalizeEditing: function () {
         var me = this;
-        me.getView().getEl().focus();
+        if (me.getView().isVisible()) {
+            me.getView().getEl().focus();
+        }
     },
 
-    setReadOnly: function (isReadOnly) {
+    updateReadOnly: function (isReadOnly) {
         var me = this;
-        if (me.isReadOnly !== isReadOnly) {
-            me.isReadOnly = isReadOnly;
-            me.updateViewState();
+        if (me.isViewReady) {
+            me.onUpdateViewState();
         }
     },
     //endregion
@@ -117,22 +146,6 @@ Ext.define('Ext.ux.util.DynamicViewController', {
     //endregion
 
     statics: {
-        initControlSection: function (data, cls, proto) {
-            var control = {};
-            if (proto.control) {
-                var superControl = proto.control;
-                delete proto.control;
-                control = Ext.merge(control, superControl);
-            }
-
-            if (data.control) {
-                var controlDefs = data.control;
-                delete data.control;
-                control = Ext.merge(control, controlDefs);
-            }
-            cls.control = proto.control = control;
-        },
-
         initDynamicControlSection: function (data, cls, proto) {
             var dynamicControl = {};
             if (proto.dynamicControl) {
@@ -150,13 +163,12 @@ Ext.define('Ext.ux.util.DynamicViewController', {
         }
     }
 },
-function () {
-    var Controller = this;
+    function () {
+        var Controller = this;
 
-    Controller.onExtended(function (cls, data) {
-        var proto = cls.prototype;
+        Controller.onExtended(function (cls, data) {
+            var proto = cls.prototype;
 
-        Controller.initControlSection(data, cls, proto);
-        Controller.initDynamicControlSection(data, cls, proto);
+            Controller.initDynamicControlSection(data, cls, proto);
+        });
     });
-});

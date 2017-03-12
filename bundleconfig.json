@@ -1,0 +1,14 @@
+[
+  {
+    "outputFileName": "ext-utils-all.js",
+    "inputFiles": [
+      "src/ExtExtentions.js",
+      "src/Lookup.js",
+      "src/DynamicComponentQuery.js",
+      "src/DynamicViewController.js",
+      "src/ExternalValidating.js",
+      "src/GridStoreReconfiguring.js",
+      "src/ReadOnlyLatching.js"
+    ]
+  }
+]
