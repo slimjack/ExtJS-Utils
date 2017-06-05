@@ -607,6 +607,7 @@ Ext.define('Ext.ux.util.TextCasings', {
     alternateClassName: 'TextCasings',
     statics: {
         upper: 'upper',
+        mixed: 'mixed',
         lower: 'lower'
     }
 });

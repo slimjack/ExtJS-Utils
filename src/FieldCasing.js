@@ -2,6 +2,7 @@
     alternateClassName: 'TextCasings',
     statics: {
         upper: 'upper',
+        mixed: 'mixed',
         lower: 'lower'
     }
 });
